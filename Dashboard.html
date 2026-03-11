@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Financial Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #0f0f0f;
+      color: #e8e8e8;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 20px 32px;
+      border-bottom: 1px solid #222;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #888;
+    }
+
+    header span {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      color: #444;
+    }
+
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .left {
+      width: 50%;
+      border-right: 1px solid #222;
+      padding: 36px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+      overflow-y: auto;
+    }
+
+    .right {
+      width: 50%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .right-top {
+      flex: 1;
+      border-bottom: 1px solid #222;
+      padding: 36px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      overflow-y: auto;
+    }
+
+    .right-bottom {
+      flex: 1;
+      padding: 36px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      overflow-y: auto;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 4px;
+    }
+
+    .balance-block { display: flex; flex-direction: column; gap: 6px; }
+
+    .balance-amount {
+      font-family: 'DM Mono', monospace;
+      font-size: 36px;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      color: #f0f0f0;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+
+    .balance-amount.large { font-size: 42px; }
+    .balance-amount:hover { color: #ffffff; }
+
+    .balance-label { font-size: 13px; color: #555; }
+
+    .spends-block { display: flex; flex-direction: column; gap: 4px; }
+
+    .spend-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #1a1a1a;
+    }
+
+    .spend-row:last-child { border-bottom: none; }
+    .spend-name { font-size: 14px; color: #888; }
+
+    .spend-amount {
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      color: #ccc;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+
+    .spend-amount:hover { color: #ffffff; }
+
+    .spend-total {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0 0;
+      margin-top: 4px;
+    }
+
+    .spend-total .spend-name { color: #aaa; font-weight: 500; }
+    .spend-total .spend-amount {
+      color: #f0f0f0;
+      font-size: 15px;
+      cursor: default;
+    }
+    .spend-total .spend-amount:hover { color: #f0f0f0; }
+
+    .runway-block { display: flex; flex-direction: column; gap: 10px; }
+
+    .runway-number {
+      font-family: 'DM Mono', monospace;
+      font-size: 52px;
+      font-weight: 400;
+      color: #c8f0c0;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      transition: color 0.4s;
+    }
+
+    .runway-number.warning { color: #f0d080; }
+    .runway-number.danger  { color: #f08080; }
+    .runway-sub { font-size: 13px; color: #555; }
+
+    .panel-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    /* Inline edit input */
+    .editable-input {
+      font-family: 'DM Mono', monospace;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid #444;
+      color: #ffffff;
+      outline: none;
+      width: 160px;
+      padding: 2px 0;
+    }
+
+    .editable-input.large { font-size: 42px; width: 220px; }
+    .editable-input.medium { font-size: 36px; width: 200px; }
+    .editable-input.small { font-size: 14px; width: 100px; }
+
+    .edit-hint {
+      font-size: 11px;
+      color: #333;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Financial Dashboard</h1>
+  <span id="today-date"></span>
+</header>
+
+<div class="main">
+
+  <!-- LEFT: SHORT TERM -->
+  <div class="left">
+    <div>
+      <div class="panel-title">Short-term · US</div>
+    </div>
+
+    <!-- US Bank Balance -->
+    <div class="balance-block">
+      <div class="section-label">US Bank Balance</div>
+      <div class="balance-amount large" id="us-balance" onclick="makeEditable(this, 'us-balance', '$', 'large')">$4,200</div>
+      <div class="balance-label">BofA Checking</div>
+    </div>
+
+    <!-- Monthly Spends -->
+    <div class="spends-block">
+      <div class="section-label">Monthly Spends</div>
+      <div class="spend-row">
+        <span class="spend-name">Rent</span>
+        <span class="spend-amount" id="spend-rent" onclick="makeEditable(this, 'spend-rent', '$', 'small')">$1,200</span>
+      </div>
+      <div class="spend-row">
+        <span class="spend-name">Utilities</span>
+        <span class="spend-amount" id="spend-utilities" onclick="makeEditable(this, 'spend-utilities', '$', 'small')">$80</span>
+      </div>
+      <div class="spend-row">
+        <span class="spend-name">Doordash</span>
+        <span class="spend-amount" id="spend-doordash" onclick="makeEditable(this, 'spend-doordash', '$', 'small')">$150</span>
+      </div>
+      <div class="spend-row">
+        <span class="spend-name">Other</span>
+        <span class="spend-amount" id="spend-other" onclick="makeEditable(this, 'spend-other', '$', 'small')">$200</span>
+      </div>
+      <div class="spend-total">
+        <span class="spend-name">Total / month</span>
+        <span class="spend-amount" id="spend-total">$1,630</span>
+      </div>
+    </div>
+
+    <!-- Runway -->
+    <div class="runway-block">
+      <div class="section-label">Estimated Runway</div>
+      <div class="runway-number" id="runway">2.6 mo</div>
+      <div class="runway-sub">at current spend rate</div>
+      <div class="edit-hint">click any number above to edit it</div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right">
+
+    <!-- RIGHT TOP: India Liquid -->
+    <div class="right-top">
+      <div class="panel-title">India · Liquid</div>
+
+      <div class="balance-block">
+        <div class="section-label">India Bank Balances</div>
+        <div class="balance-amount" id="india-bank" onclick="makeEditable(this, 'india-bank', '₹', 'medium')">₹3,20,000</div>
+        <div class="balance-label">HDFC</div>
+      </div>
+
+      <div class="balance-block">
+        <div class="section-label">India Credit Cards</div>
+        <div class="balance-amount" id="india-cc" style="color: #f08080;" onclick="makeEditable(this, 'india-cc', '₹', 'medium')">₹18,500</div>
+        <div class="balance-label">Outstanding balance</div>
+      </div>
+    </div>
+
+    <!-- RIGHT BOTTOM: India Investments -->
+    <div class="right-bottom">
+      <div class="panel-title">India · Investments</div>
+
+      <div class="balance-block">
+        <div class="section-label">Stock Portfolio</div>
+        <div class="balance-amount" id="india-stocks" onclick="makeEditable(this, 'india-stocks', '₹', 'medium')">₹12,40,000</div>
+        <div class="balance-label">Zerodha</div>
+      </div>
+
+      <div class="balance-block">
+        <div class="section-label">Mutual Funds</div>
+        <div class="balance-amount" id="india-mf" onclick="makeEditable(this, 'india-mf', '₹', 'medium')">₹8,75,000</div>
+        <div class="balance-label">Coinn</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Date in header
+  const d = new Date();
+  document.getElementById('today-date').textContent =
+    d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  // Default values (used only on first ever load)
+  const defaults = {
+    'us-balance': 4200,
+    'spend-rent': 1200,
+    'spend-utilities': 80,
+    'spend-doordash': 150,
+    'spend-other': 200,
+    'india-bank': 320000,
+    'india-cc': 18500,
+    'india-stocks': 1240000,
+    'india-mf': 875000,
+  };
+
+  // Load from localStorage if available, otherwise use defaults
+  const saved = localStorage.getItem('dashboard-values');
+  const values = saved ? JSON.parse(saved) : { ...defaults };
+
+  // Currency map for each field
+  const currencies = {
+    'us-balance': '$',
+    'spend-rent': '$',
+    'spend-utilities': '$',
+    'spend-doordash': '$',
+    'spend-other': '$',
+    'india-bank': '₹',
+    'india-cc': '₹',
+    'india-stocks': '₹',
+    'india-mf': '₹',
+  };
+
+  const spendIds = ['spend-rent', 'spend-utilities', 'spend-doordash', 'spend-other'];
+
+  function saveToStorage() {
+    localStorage.setItem('dashboard-values', JSON.stringify(values));
+  }
+
+  function formatNumber(value, currency) {
+    if (currency === '₹') {
+      return '₹' + value.toLocaleString('en-IN');
+    }
+    return '$' + value.toLocaleString('en-US');
+  }
+
+  function renderAll() {
+    // Render every editable field from current values
+    Object.keys(values).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = formatNumber(values[id], currencies[id]);
+    });
+    updateTotals();
+  }
+
+  function updateTotals() {
+    const total = spendIds.reduce((sum, id) => sum + values[id], 0);
+    document.getElementById('spend-total').textContent = '$' + total.toLocaleString('en-US');
+
+    const balance = values['us-balance'];
+    const runway = total > 0 ? balance / total : 0;
+    const runwayEl = document.getElementById('runway');
+    runwayEl.textContent = runway.toFixed(1) + ' mo';
+    runwayEl.className = 'runway-number';
+    if (runway < 2) runwayEl.classList.add('danger');
+    else if (runway < 4) runwayEl.classList.add('warning');
+  }
+
+  function makeEditable(el, id, currency, size) {
+    if (el.querySelector('input')) return;
+
+    const currentValue = values[id];
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentValue;
+    input.className = 'editable-input ' + size;
+
+    el.textContent = '';
+    el.appendChild(input);
+    input.focus();
+    input.select();
+
+    function save() {
+      const raw = input.value.replace(/[^0-9.]/g, '');
+      const num = parseFloat(raw);
+      if (!isNaN(num) && num >= 0) {
+        values[id] = num;
+        saveToStorage(); // persist immediately on save
+      }
+      el.textContent = formatNumber(values[id], currency);
+      updateTotals();
+    }
+
+    input.addEventListener('blur', save);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') input.blur();
+      if (e.key === 'Escape') {
+        el.textContent = formatNumber(currentValue, currency);
+      }
+    });
+  }
+
+  // On load: render saved values and calculate totals
+  renderAll();
+</script>
+
+</body>
+</html>
